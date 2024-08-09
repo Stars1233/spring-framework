@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.assertj.core.api.AbstractAssert;
@@ -271,6 +272,24 @@ class ScheduledAnnotationBeanPostProcessorTests {
 	}
 
 	@Test
+	void oneTimeTaskOnNonRegisteredBean() {
+		BeanDefinition processorDefinition = new RootBeanDefinition(ScheduledAnnotationBeanPostProcessor.class);
+		context.registerBeanDefinition("postProcessor", processorDefinition);
+		context.refresh();
+
+		ScheduledTaskHolder postProcessor = context.getBean("postProcessor", ScheduledTaskHolder.class);
+		assertThat(postProcessor.getScheduledTasks()).hasSize(0);
+
+		Object target = context.getAutowireCapableBeanFactory().createBean(OneTimeTaskBean.class);
+		assertThat(postProcessor.getScheduledTasks()).hasSize(1);
+		@SuppressWarnings("unchecked")
+		Set<Object> manualTasks = (Set<Object>)
+				new DirectFieldAccessor(postProcessor).getPropertyValue("manualCancellationOnContextClose");
+		assertThat(manualTasks).hasSize(1);
+		assertThat(manualTasks).contains(target);
+	}
+
+	@Test
 	void cronTask() {
 		BeanDefinition processorDefinition = new RootBeanDefinition(ScheduledAnnotationBeanPostProcessor.class);
 		BeanDefinition targetDefinition = new RootBeanDefinition(CronTestBean.class);
@@ -496,8 +515,10 @@ class ScheduledAnnotationBeanPostProcessorTests {
 	@CsvSource(textBlock = """
 		PropertyPlaceholderWithFixedDelay, 5000, 1000, 5_000, 1_000
 		PropertyPlaceholderWithFixedDelay, PT5S, PT1S, 5_000, 1_000
+		PropertyPlaceholderWithFixedDelay, 5400ms, 1s, 5_400, 1_000
 		PropertyPlaceholderWithFixedDelayInSeconds, 5000, 1000, 5_000_000, 1_000_000
 		PropertyPlaceholderWithFixedDelayInSeconds, PT5S, PT1S, 5_000, 1_000
+		PropertyPlaceholderWithFixedDelayInSeconds, 5400ms, 500ms, 5_400, 500
 	""")
 	void propertyPlaceholderWithFixedDelay(@NameToClass Class<?> beanClass, String fixedDelay, String initialDelay,
 			long expectedInterval, long expectedInitialDelay) {
@@ -536,8 +557,10 @@ class ScheduledAnnotationBeanPostProcessorTests {
 	@CsvSource(textBlock = """
 		PropertyPlaceholderWithFixedRate, 3000, 1000, 3_000, 1_000
 		PropertyPlaceholderWithFixedRate, PT3S, PT1S, 3_000, 1_000
+		PropertyPlaceholderWithFixedRate, 3200ms, 1s, 3_200, 1_000
 		PropertyPlaceholderWithFixedRateInSeconds, 3000, 1000, 3_000_000, 1_000_000
 		PropertyPlaceholderWithFixedRateInSeconds, PT3S, PT1S, 3_000, 1_000
+		PropertyPlaceholderWithFixedRateInSeconds, 3200ms, 500ms, 3_200, 500
 	""")
 	void propertyPlaceholderWithFixedRate(@NameToClass Class<?> beanClass, String fixedRate, String initialDelay,
 			long expectedInterval, long expectedInitialDelay) {

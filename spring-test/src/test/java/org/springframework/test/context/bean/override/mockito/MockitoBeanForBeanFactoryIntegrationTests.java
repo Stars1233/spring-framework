@@ -16,6 +16,8 @@
 
 package org.springframework.test.context.bean.override.mockito;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.FactoryBean;
@@ -26,32 +28,31 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
+import static org.mockito.BDDMockito.when;
 
 /**
- * Test {@link MockitoBean @MockitoBean} for a factory bean.
+ * Test {@link MockitoBean @MockitoBean} for a factory bean configuration.
  *
- * @author Phillip Webb
+ * @author Simon Baslé
  */
 @SpringJUnitConfig
 class MockitoBeanForBeanFactoryIntegrationTests {
 
 	@MockitoBean
-	private TestFactoryBean testFactoryBean;
+	private TestBean testBean;
 
 	@Autowired
 	private ApplicationContext applicationContext;
 
 	@Test
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	void testName() {
-		TestBean testBean = mock(TestBean.class);
-		given(testBean.hello()).willReturn("amock");
-		given(this.testFactoryBean.getObjectType()).willReturn((Class) TestBean.class);
-		given(this.testFactoryBean.getObject()).willReturn(testBean);
+	void beanReturnedByFactoryIsMocked() {
 		TestBean bean = this.applicationContext.getBean(TestBean.class);
+		assertThat(bean).isSameAs(this.testBean);
+
+		when(testBean.hello()).thenReturn("amock");
 		assertThat(bean.hello()).isEqualTo("amock");
+
+		assertThat(TestFactoryBean.USED).isFalse();
 	}
 
 	@Configuration(proxyBeanMethods = false)
@@ -66,8 +67,11 @@ class MockitoBeanForBeanFactoryIntegrationTests {
 
 	static class TestFactoryBean implements FactoryBean<TestBean> {
 
+		static final AtomicBoolean USED = new AtomicBoolean(false);
+
 		@Override
 		public TestBean getObject() {
+			USED.set(true);
 			return () -> "normal";
 		}
 

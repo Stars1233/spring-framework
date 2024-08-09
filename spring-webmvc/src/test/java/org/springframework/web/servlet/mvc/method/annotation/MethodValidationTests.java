@@ -172,7 +172,7 @@ class MethodValidationTests {
 		assertThat(this.jakartaValidator.getValidationCount()).isEqualTo(1);
 		assertThat(this.jakartaValidator.getMethodValidationCount()).isEqualTo(1);
 
-		assertThat(ex.getAllValidationResults()).hasSize(2);
+		assertThat(ex.getParameterValidationResults()).hasSize(2);
 
 		assertBeanResult(ex.getBeanResults().get(0), "student", List.of("""
 			Field error in object 'student' on field 'name': rejected value [name=Faustino1234]; \
@@ -183,7 +183,7 @@ class MethodValidationTests {
 		));
 
 		assertValueResult(ex.getValueResults().get(0), 2, "123", List.of("""
-			org.springframework.context.support.DefaultMessageSourceResolvable: \
+			org.springframework.validation.beanvalidation.MethodValidationAdapter$ViolationMessageSourceResolvable: \
 			codes [Size.validController#handle.myHeader,Size.myHeader,Size.java.lang.String,Size]; \
 			arguments [org.springframework.context.support.DefaultMessageSourceResolvable: \
 			codes [validController#handle.myHeader,myHeader]; arguments []; default message [myHeader],10,5]; \
@@ -227,7 +227,7 @@ class MethodValidationTests {
 		assertThat(this.jakartaValidator.getValidationCount()).isEqualTo(1);
 		assertThat(this.jakartaValidator.getMethodValidationCount()).isEqualTo(1);
 
-		assertThat(ex.getAllValidationResults()).hasSize(2);
+		assertThat(ex.getParameterValidationResults()).hasSize(2);
 
 		assertBeanResult(ex.getBeanResults().get(0), "personList", List.of("""
 			Field error in object 'personList' on field 'name': rejected value [Faustino1234]; \
