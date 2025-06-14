@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -124,6 +124,7 @@ public abstract class AbstractJaxb2HttpMessageConverter<T> extends AbstractXmlHt
 	 * Detect the charset from the given {@link HttpHeaders#getContentType()}.
 	 * @param httpHeaders the current HTTP headers
 	 * @return the charset defined in the content type header, or {@code null} if not found
+	 * @since 6.2.8
 	 */
 	protected @Nullable Charset detectCharset(HttpHeaders httpHeaders) {
 		MediaType contentType = httpHeaders.getContentType();
