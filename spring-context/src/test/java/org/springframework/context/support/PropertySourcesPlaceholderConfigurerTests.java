@@ -41,6 +41,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 import org.springframework.core.SpringProperties;
+import org.springframework.core.convert.ConversionService;
+import org.springframework.core.convert.converter.Converter;
 import org.springframework.core.convert.support.DefaultConversionService;
 import org.springframework.core.env.AbstractPropertyResolver;
 import org.springframework.core.env.EnumerablePropertySource;
@@ -91,6 +93,38 @@ class PropertySourcesPlaceholderConfigurerTests {
 	}
 
 	/**
+	 * Ensure that a {@link Converter} registered in the {@link ConversionService}
+	 * used by the {@code Environment} is applied during placeholder resolution
+	 * against a {@link PropertySource} registered in the {@code Environment}.
+	 */
+	@Test  // gh-34936
+	void replacementFromEnvironmentPropertiesWithConversion() {
+		DefaultListableBeanFactory bf = new DefaultListableBeanFactory();
+		bf.registerBeanDefinition("testBean",
+				genericBeanDefinition(TestBean.class)
+					.addPropertyValue("name", "${my.name}")
+					.getBeanDefinition());
+
+		record Point(int x, int y) {
+		}
+
+		Converter<Point, String> pointToStringConverter =
+				point -> "(%d,%d)".formatted(point.x, point.y);
+
+		DefaultConversionService conversionService = new DefaultConversionService();
+		conversionService.addConverter(Point.class, String.class, pointToStringConverter);
+
+		MockEnvironment env = new MockEnvironment();
+		env.setConversionService(conversionService);
+		env.setProperty("my.name", new Point(4,5));
+
+		PropertySourcesPlaceholderConfigurer ppc = new PropertySourcesPlaceholderConfigurer();
+		ppc.setEnvironment(env);
+		ppc.postProcessBeanFactory(bf);
+		assertThat(bf.getBean(TestBean.class).getName()).isEqualTo("(4,5)");
+	}
+
+	/**
 	 * Ensure that a {@link PropertySource} added to the {@code Environment} after context
 	 * refresh (i.e., after {@link PropertySourcesPlaceholderConfigurer#postProcessBeanFactory()}
 	 * has been invoked) can still contribute properties in late-binding scenarios.
@@ -136,7 +170,7 @@ class PropertySourcesPlaceholderConfigurerTests {
 					.getBeanDefinition());
 
 		PropertySourcesPlaceholderConfigurer ppc = new PropertySourcesPlaceholderConfigurer();
-		Resource resource = new ClassPathResource("PropertySourcesPlaceholderConfigurerTests.properties", this.getClass());
+		Resource resource = new ClassPathResource("PropertySourcesPlaceholderConfigurerTests.properties", getClass());
 		ppc.setLocation(resource);
 		ppc.postProcessBeanFactory(bf);
 		assertThat(bf.getBean(TestBean.class).getName()).isEqualTo("foo");
